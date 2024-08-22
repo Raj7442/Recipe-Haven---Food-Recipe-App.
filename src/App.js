@@ -3,50 +3,68 @@ import './App.css';
 import Recipe from './Recipe';
 
 const App = () => {
-  const APP_ID = '<435ed355>'; // Replace with your APP ID
-  const APP_KEY = '<9a64acf83ed5a5a1946e498bcbaf9152	>'; // Replace with your APP KEY
+  const APP_ID = 'YOUR_APP_ID'; // Replace with your actual Edamam API ID
+  const APP_KEY = 'YOUR_APP_KEY'; // Replace with your actual Edamam API Key
+
   const [recipes, setRecipes] = useState([]);
-  const [search, setSearch] = useState("");
-  const [query, setQuery] = useState("chicken");
+  const [searchTerm, setSearchTerm] = useState("chicken"); // Clearer variable name
+  const [isLoading, setIsLoading] = useState(false); // Track loading state
+  const [error, setError] = useState(null); // Store any errors
 
   useEffect(() => {
+    const getRecipes = async () => {
+      setIsLoading(true); // Set loading state to true
+      setError(null); // Clear any previous errors
+
+      try {
+        const response = await fetch(
+          `https://api.edamam.com/search?q=${searchTerm}&app_id=${APP_ID}&app_key=${APP_KEY}`
+        );
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        setRecipes(data.hits || []); // Ensure recipes is an array
+      } catch (error) {
+        setError(error.message); // Set error message
+      } finally {
+        setIsLoading(false); // Set loading state to false after request completes
+      }
+    };
+
     getRecipes();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query]);
+  }, [searchTerm]); // Dependency array includes searchTerm
 
-  const getRecipes = async () => {
-    const response = await fetch(
-      `https://api.edamam.com/search?q=${query}&app_id=${APP_ID}&app_key=${APP_KEY}`
-    );
-    const data = await response.json();
-    setRecipes(data.hits || []); // Ensure recipes is an array
+  const handleSearch = (event) => {
+    setSearchTerm(event.target.value);
   };
 
-  const updateSearch = e => {
-    setSearch(e.target.value);
-  };
-
-  const getSearch = e => {
-    e.preventDefault();
-    setQuery(search);
-    setSearch("");
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+    getRecipes(); // Call getRecipes on search submit
   };
 
   return (
     <div className="App">
-      <form className="search-form" onSubmit={getSearch}>
+      <form className="search-form" onSubmit={handleSearchSubmit}>
         <input
           className="search-bar"
           type="text"
-          value={search}
-          onChange={updateSearch}
+          value={searchTerm}
+          onChange={handleSearch}
+          placeholder="Search Recipes" // Add placeholder for user guidance
         />
         <button className="search-button" type="submit">
           Search
         </button>
       </form>
+
+      {isLoading && <p>Loading recipes...</p>} // Display loading message
+      {error && <p className="error-message">Error: {error}</p>} // Display error message
       <div className="recipes">
-        {recipes.map(recipe => (
+        {recipes.map((recipe) => (
           <Recipe
             key={recipe.recipe.uri}
             title={recipe.recipe.label}
